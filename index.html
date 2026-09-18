@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gym Vargas Machine - Control de Miembros</title>
+  <style>
+    /* Estilos generales optimizados para celulares */
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #121212; color: #ffffff; padding: 15px; text-align: center; }
+    
+    /* Logo de Mancuerna / Barra */
+    .logo-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 20px 0;
+      gap: 5px;
+    }
+    .disco { width: 12px; height: 45px; background: #d32f2f; border-radius: 3px; border: 1px solid #9a0007; }
+    .disco-peq { width: 8px; height: 35px; background: #b71c1c; border-radius: 2px; }
+    .agarre { width: 15px; height: 8px; background: #888; }
+    .logo-texto {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #ffffff;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 0 8px;
+    }
+    .logo-texto span { color: #d32f2f; }
+
+    /* Formulario de registro */
+    .card {
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      border: 1px solid #333;
+    }
+    .card h2 { margin-bottom: 15px; font-size: 1.1rem; color: #e0e0e0; }
+    
+    input, select {
+      width: 100%;
+      padding: 14px;
+      margin-bottom: 12px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #2a2a2a;
+      color: #fff;
+      font-size: 1rem;
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      background: #d32f2f;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:active { background: #9a0007; transform: scale(0.98); }
+
+    /* Lista de Miembros */
+    .miembro-card {
+      background: #2a2a2a;
+      padding: 12px 15px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-left: 4px solid #d32f2f;
+    }
+    .miembro-info { font-size: 0.95rem; }
+    .miembro-info strong { display: block; font-size: 1.05rem; color: #fff; }
+    .estado { font-size: 0.8rem; padding: 3px 8px; border-radius: 4px; background: #2e7d32; color: #fff; }
+  </style>
+</head>
+<body>
+
+  <!-- LOGO EMBEBIDO GYM VARGAS MACHINE -->
+  <div class="logo-container">
+    <div class="disco-peq"></div>
+    <div class="disco"></div>
+    <div class="agarre"></div>
+    <div class="logo-texto">GYM <span>VARGAS</span> MACHINE</div>
+    <div class="agarre"></div>
+    <div class="disco"></div>
+    <div class="disco-peq"></div>
+  </div>
+
+  <!-- REGISTRO DESDE EL TELÉFONO -->
+  <div class="card">
+    <h2>Registrar Nuevo Miembro</h2>
+    <input type="text" id="nombre" placeholder="Nombre completo">
+    <input type="tel" id="telefono" placeholder="Número de Teléfono">
+    <select id="plan">
+      <option value="Mensualidad Pase Libre">Mensualidad Pase Libre</option>
+      <option value="Plan Personalizado">Plan Personalizado</option>
+      <option value="Pase Diario">Pase Diario</option>
+    </select>
+    <button onclick="agregarMiembro()">+ GUARDAR EN EL SISTEMA</button>
+  </div>
+
+  <!-- LISTADO DE MIEMBROS -->
+  <div class="card">
+    <h2>Miembros Registrados</h2>
+    <div id="listaMiembros">
+      <p style="color: #888;">Cargando miembros...</p>
+    </div>
+  </div>
+
+  <script>
+    // Guardar información en localStorage (accesible desde el navegador del celular)
+    function agregarMiembro() {
+      const nombre = document.getElementById('nombre').value;
+      const telefono = document.getElementById('telefono').value;
+      const plan = document.getElementById('plan').value;
+
+      if (!nombre) {
+        alert("Por favor ingresa el nombre del miembro");
+        return;
+      }
+
+      const nuevoMiembro = {
+        nombre: nombre,
+        telefono: telefono,
+        plan: plan,
+        fecha: new Date().toLocaleDateString()
+      };
+
+      let miembros = JSON.parse(localStorage.getItem('gym_vargas_miembros')) || [];
+      miembros.unshift(nuevoMiembro); // Agregar al inicio de la lista
+
+      localStorage.setItem('gym_vargas_miembros', JSON.stringify(miembros));
+
+      // Limpiar campos
+      document.getElementById('nombre').value = '';
+      document.getElementById('telefono').value = '';
+
+      obtenerMiembros();
+    }
+
+    function obtenerMiembros() {
+      let miembros = JSON.parse(localStorage.getItem('gym_vargas_miembros')) || [];
+      const contenedor = document.getElementById('listaMiembros');
+
+      if (miembros.length === 0) {
+        contenedor.innerHTML = '<p style="color: #888;">No hay miembros registrados aún.</p>';
+        return;
+      }
+
+      contenedor.innerHTML = '';
+      miembros.forEach((m) => {
+        contenedor.innerHTML += `
+          <div class="miembro-card">
+            <div class="miembro-info">
+              <strong>${m.nombre}</strong>
+              <small style="color: #aaa;">${m.plan} • ${m.fecha}</small>
+            </div>
+            <span class="estado">Activo</span>
+          </div>
+        `;
+      });
+    }
+
+    // Cargar miembros al iniciar la página
+    obtenerMiembros();
+  </script>
+</body>
+</html>
