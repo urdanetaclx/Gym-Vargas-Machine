@@ -36,7 +36,6 @@
     }
     input:focus, select:focus { border-color: #d32f2f; }
 
-    /* Caja de Resumen de Pago */
     .resumen-pago {
       background: #282828;
       border: 1px solid #d32f2f;
@@ -56,9 +55,9 @@
     button { width: 100%; padding: 15px; background: #d32f2f; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.2s; }
     button:active { background: #9a0007; transform: scale(0.98); }
     
-    .btn-borrar { background: #444; margin-top: 10px; font-size: 0.85rem; padding: 10px; }
+    .btn-borrar { background: #333; color: #aaa; margin-top: 10px; font-size: 0.85rem; padding: 10px; border: 1px solid #444; }
 
-    /* Estilos de tarjetas de miembros */
+    /* Estilos de miembros */
     .miembro-card { background: #2a2a2a; padding: 14px 15px; border-radius: 8px; margin-bottom: 10px; text-align: left; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #2e7d32; }
     .miembro-card.alerta-proximo { border-left-color: #f57c00; background: #332619; }
     .miembro-card.alerta-vencido { border-left-color: #d32f2f; background: #331919; }
@@ -76,10 +75,10 @@
     .monto-sub-bs { font-size: 0.8rem; color: #81c784; font-weight: bold; margin-top: 3px; display: block; }
     
     /* Botones de Acción */
-    .acciones-container { display: flex; align-items: center; gap: 8px; }
-    .btn-ws { background: #25d366; color: white; border: none; padding: 8px 10px; border-radius: 6px; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; text-decoration: none; }
-    .btn-ws:active { background: #128c7e; }
-    .btn-eliminar-item { background: transparent; color: #ff5252; border: none; width: auto; padding: 5px 6px; font-size: 1rem; cursor: pointer; }
+    .acciones-container { display: flex; align-items: center; gap: 6px; }
+    .btn-ws { background: #25d366; color: white; border: none; padding: 8px 10px; border-radius: 6px; font-size: 1rem; cursor: pointer; text-decoration: none; }
+    .btn-editar { background: #1976d2; color: white; border: none; padding: 8px 10px; border-radius: 6px; font-size: 0.9rem; cursor: pointer; }
+    .btn-eliminar-item { background: transparent; color: #ff5252; border: none; padding: 5px; font-size: 1rem; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -95,10 +94,12 @@
     <div class="disco-peq"></div>
   </div>
 
-  <!-- REGISTRO -->
+  <!-- REGISTRO Y EDICIÓN -->
   <div class="card">
-    <h2>Registrar Cliente</h2>
+    <h2 id="tituloFormulario">Registrar Cliente</h2>
     
+    <input type="hidden" id="editId">
+
     <label for="tasaBcv">💵 Tasa Oficial BCV (Bs. / USD)</label>
     <input type="number" id="tasaBcv" step="0.01" placeholder="Ej: 36.50" oninput="calcularTotal()">
 
@@ -124,13 +125,13 @@
       <label for="personalizado">Anexar Plan Personalizado (+$10)</label>
     </div>
 
-    <!-- CAJA DE CÁLCULO EN BOLÍVARES -->
     <div class="resumen-pago">
       <p>Total USD: <strong id="resumenUsd">$25</strong></p>
       <p>Total a Cobrar en Bolívares: <strong id="resumenBs" class="monto-bs">Bs. 0.00</strong></p>
     </div>
 
-    <button onclick="agregarMiembro()">+ GUARDAR REGISTRO</button>
+    <button id="btnGuardar" onclick="agregarOActualizarMiembro()">+ GUARDAR REGISTRO</button>
+    <button id="btnCancelar" onclick="cancelarEdicion()" style="display:none; background:#555; margin-top:10px;">CANCELAR EDICIÓN</button>
   </div>
 
   <!-- LISTA DE CLIENTES -->
@@ -140,16 +141,17 @@
     <div id="listaMiembros">
       <p style="color: #888;">Cargando lista...</p>
     </div>
-    <button class="btn-borrar" onclick="limpiarTodo()">🗑️ Borrar toda la lista (Reiniciar)</button>
+    <button class="btn-borrar" onclick="limpiarTodo()">🔒 Borrar toda la lista (Requiere PIN)</button>
   </div>
 
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      // Asignar fecha actual por defecto
+    // Clave PIN del Administrador para Modificar / Borrar (Cámbiala si lo deseas)
+    const PIN_ADMIN = "1234";
+
+    window.onload = function() {
       const hoy = new Date().toISOString().split('T')[0];
       document.getElementById('fechaInscripcion').value = hoy;
 
-      // Recuperar última tasa BCV ingresada
       const ultimaTasa = localStorage.getItem('gym_vargas_tasa_bcv');
       if (ultimaTasa) {
         document.getElementById('tasaBcv').value = ultimaTasa;
@@ -157,7 +159,7 @@
 
       calcularTotal();
       obtenerMiembros();
-    });
+    };
 
     function toggleCheckbox() {
       const checkbox = document.getElementById('personalizado');
@@ -180,13 +182,13 @@
       document.getElementById('resumenUsd').textContent = `$${precioUsd}`;
       document.getElementById('resumenBs').textContent = `Bs. ${totalBs.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
-      // Guardar tasa en memoria
       if (tasaBcv > 0) {
         localStorage.setItem('gym_vargas_tasa_bcv', tasaBcv);
       }
     }
 
-    function agregarMiembro() {
+    function agregarOActualizarMiembro() {
+      const editId = document.getElementById('editId').value;
       const nombreInput = document.getElementById('nombre');
       const telefonoInput = document.getElementById('telefono');
       const fechaInput = document.getElementById('fechaInscripcion');
@@ -203,11 +205,6 @@
         return;
       }
 
-      if (!fechaSeleccionada) {
-        alert("Por favor selecciona una fecha de inscripción.");
-        return;
-      }
-
       let nombrePlan = planSelect[0];
       let precioBase = parseInt(planSelect[1]);
       let diasDuracion = parseInt(planSelect[2]);
@@ -219,40 +216,95 @@
       }
 
       const totalBs = precioTotalUsd * tasaBcv;
-
       const partesFecha = fechaSeleccionada.split('-');
       const fechaInicio = new Date(partesFecha[0], partesFecha[1] - 1, partesFecha[2]);
 
       const fechaVencimiento = new Date(fechaInicio);
       fechaVencimiento.setDate(fechaInicio.getDate() + diasDuracion);
 
-      const nuevoMiembro = {
-        id: Date.now(),
-        nombre: nombre,
-        telefono: telefono || 'N/A',
-        plan: nombrePlan,
-        precioUsd: `$${precioTotalUsd}`,
-        precioBs: totalBs > 0 ? `Bs. ${totalBs.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : 'N/A',
-        tasaUsada: tasaBcv,
-        fechaRegistro: fechaInicio.toISOString(),
-        fechaVencimiento: fechaVencimiento.toISOString()
-      };
+      let miembros = JSON.parse(localStorage.getItem('gym_vargas_miembros')) || [];
+
+      if (editId) {
+        // Modo Edición
+        const index = miembros.findIndex(m => m.id == editId);
+        if (index !== -1) {
+          miembros[index].nombre = nombre;
+          miembros[index].telefono = telefono || 'N/A';
+          miembros[index].plan = nombrePlan;
+          miembros[index].precioUsd = `$${precioTotalUsd}`;
+          miembros[index].precioBs = totalBs > 0 ? `Bs. ${totalBs.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : 'N/A';
+          miembros[index].tasaUsada = tasaBcv;
+          miembros[index].fechaRegistro = fechaInicio.toISOString();
+          miembros[index].fechaVencimiento = fechaVencimiento.toISOString();
+        }
+      } else {
+        // Modo Nuevo Registro
+        const nuevoMiembro = {
+          id: Date.now(),
+          nombre: nombre,
+          telefono: telefono || 'N/A',
+          plan: nombrePlan,
+          precioUsd: `$${precioTotalUsd}`,
+          precioBs: totalBs > 0 ? `Bs. ${totalBs.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : 'N/A',
+          tasaUsada: tasaBcv,
+          fechaRegistro: fechaInicio.toISOString(),
+          fechaVencimiento: fechaVencimiento.toISOString()
+        };
+        miembros.unshift(nuevoMiembro);
+      }
+
+      localStorage.setItem('gym_vargas_miembros', JSON.stringify(miembros));
+      cancelarEdicion();
+      obtenerMiembros();
+    }
+
+    function editarCliente(id) {
+      const pin = prompt("🔒 Ingresa la clave PIN del administrador para modificar:");
+      if (pin !== PIN_ADMIN) {
+        alert("❌ Clave PIN incorrecta. No tienes permiso para editar.");
+        return;
+      }
 
       let miembros = JSON.parse(localStorage.getItem('gym_vargas_miembros')) || [];
-      
-      const esDuplicado = miembros.some(m => m.nombre.toLowerCase() === nombre.toLowerCase() && (Date.now() - m.id) < 5000);
-      if (esDuplicado) return;
+      const cliente = miembros.find(m => m.id === id);
 
-      miembros.unshift(nuevoMiembro);
-      localStorage.setItem('gym_vargas_miembros', JSON.stringify(miembros));
+      if (cliente) {
+        document.getElementById('editId').value = cliente.id;
+        document.getElementById('nombre').value = cliente.nombre;
+        document.getElementById('telefono').value = cliente.telefono === 'N/A' ? '' : cliente.telefono;
+        document.getElementById('fechaInscripcion').value = cliente.fechaRegistro.split('T')[0];
 
-      // Limpiar datos
-      nombreInput.value = '';
-      telefonoInput.value = '';
+        document.getElementById('tituloFormulario').textContent = "✏️ Modificar Cliente";
+        document.getElementById('btnGuardar').textContent = "💾 GUARDAR CAMBIOS";
+        document.getElementById('btnCancelar').style.display = "block";
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    function cancelarEdicion() {
+      document.getElementById('editId').value = '';
+      document.getElementById('nombre').value = '';
+      document.getElementById('telefono').value = '';
       document.getElementById('personalizado').checked = false;
       document.getElementById('fechaInscripcion').value = new Date().toISOString().split('T')[0];
 
+      document.getElementById('tituloFormulario').textContent = "Registrar Cliente";
+      document.getElementById('btnGuardar').textContent = "+ GUARDAR REGISTRO";
+      document.getElementById('btnCancelar').style.display = "none";
       calcularTotal();
+    }
+
+    function eliminarCliente(id) {
+      const pin = prompt("🔒 Ingresa la clave PIN para eliminar este cliente:");
+      if (pin !== PIN_ADMIN) {
+        alert("❌ Clave PIN incorrecta. No se eliminó el cliente.");
+        return;
+      }
+
+      let miembros = JSON.parse(localStorage.getItem('gym_vargas_miembros')) || [];
+      miembros = miembros.filter(m => m.id !== id);
+      localStorage.setItem('gym_vargas_miembros', JSON.stringify(miembros));
       obtenerMiembros();
     }
 
@@ -261,6 +313,7 @@
       const filtro = document.getElementById('buscar').value.toLowerCase();
       const contenedor = document.getElementById('listaMiembros');
 
+      contenedor.innerHTML = '';
       const miembrosFiltrados = miembros.filter(m => m.nombre.toLowerCase().includes(filtro));
 
       if (miembrosFiltrados.length === 0) {
@@ -270,7 +323,8 @@
 
       const hoy = new Date();
       hoy.setHours(0, 0, 0, 0);
-      contenedor.innerHTML = '';
+
+      let htmlContenido = '';
 
       miembrosFiltrados.forEach((m) => {
         const fechaInsc = new Date(m.fechaRegistro);
@@ -296,7 +350,6 @@
         const fechaInscFormateada = fechaInsc.toLocaleDateString('es-ES');
         const fechaVencFormateada = fechaVenc.toLocaleDateString('es-ES');
         
-        // Preparar WhatsApp
         let tlfLimpio = m.telefono.replace(/\D/g, '');
         if (tlfLimpio.startsWith('0')) {
           tlfLimpio = '58' + tlfLimpio.substring(1);
@@ -309,7 +362,7 @@
           ? `<a href="${urlWS}" target="_blank" class="btn-ws" title="Enviar WhatsApp">💬</a>` 
           : '';
 
-        contenedor.innerHTML += `
+        htmlContenido += `
           <div class="miembro-card ${claseAlerta}">
             <div class="miembro-info">
               <strong>${m.nombre}</strong>
@@ -324,22 +377,24 @@
                 <span class="monto-sub-bs">${m.precioBs}</span>
               </div>
               ${btnWhatsApp}
+              <button class="btn-editar" onclick="editarCliente(${m.id})">✏️</button>
               <button class="btn-eliminar-item" onclick="eliminarCliente(${m.id})">❌</button>
             </div>
           </div>
         `;
       });
-    }
 
-    function eliminarCliente(id) {
-      let miembros = JSON.parse(localStorage.getItem('gym_vargas_miembros')) || [];
-      miembros = miembros.filter(m => m.id !== id);
-      localStorage.setItem('gym_vargas_miembros', JSON.stringify(miembros));
-      obtenerMiembros();
+      contenedor.innerHTML = htmlContenido;
     }
 
     function limpiarTodo() {
-      if (confirm("¿Estás seguro de que deseas borrar toda la lista de clientes registrados?")) {
+      const pin = prompt("🔒 Ingresa la clave PIN para borrar TODA la lista:");
+      if (pin !== PIN_ADMIN) {
+        alert("❌ Clave PIN incorrecta. Acción cancelada.");
+        return;
+      }
+
+      if (confirm("¿Estás 100% seguro de vaciar toda la lista?")) {
         localStorage.removeItem('gym_vargas_miembros');
         obtenerMiembros();
       }
