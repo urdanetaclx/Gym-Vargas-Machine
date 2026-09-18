@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gym Vargas Machine - Control de Miembros</title>
   <style>
-    /* Estilos generales optimizados para celulares */
+    /* Estilos generales optimizados para celular */
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body { background-color: #121212; color: #ffffff; padding: 15px; text-align: center; }
     
@@ -21,35 +21,64 @@
     .disco-peq { width: 8px; height: 35px; background: #b71c1c; border-radius: 2px; }
     .agarre { width: 15px; height: 8px; background: #888; }
     .logo-texto {
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       font-weight: bold;
       color: #ffffff;
       letter-spacing: 1px;
       text-transform: uppercase;
-      padding: 0 8px;
+      padding: 0 6px;
     }
     .logo-texto span { color: #d32f2f; }
 
-    /* Formulario de registro */
+    /* Tarjetas del formulario y listado */
     .card {
       background: #1e1e1e;
       padding: 20px;
       border-radius: 12px;
-      margin-bottom: 25px;
+      margin-bottom: 20px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.5);
       border: 1px solid #333;
     }
-    .card h2 { margin-bottom: 15px; font-size: 1.1rem; color: #e0e0e0; }
+    .card h2 { margin-bottom: 15px; font-size: 1.1rem; color: #e0e0e0; text-transform: uppercase; letter-spacing: 0.5px; }
     
-    input, select {
+    label { display: block; text-align: left; font-size: 0.85rem; color: #aaa; margin-bottom: 5px; font-weight: 600; }
+
+    input[type="text"], input[type="tel"], select {
       width: 100%;
       padding: 14px;
-      margin-bottom: 12px;
+      margin-bottom: 15px;
       border-radius: 8px;
       border: 1px solid #444;
       background: #2a2a2a;
       color: #fff;
       font-size: 1rem;
+      outline: none;
+    }
+    input:focus, select:focus { border-color: #d32f2f; }
+
+    /* Casilla de selección (Checkbox) para el Adicional */
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      background: #2a2a2a;
+      padding: 12px 15px;
+      border-radius: 8px;
+      border: 1px solid #d32f2f;
+      margin-bottom: 18px;
+      cursor: pointer;
+    }
+    .checkbox-container input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      accent-color: #d32f2f;
+      margin-right: 12px;
+      cursor: pointer;
+    }
+    .checkbox-container label {
+      margin-bottom: 0;
+      color: #fff;
+      font-size: 0.95rem;
+      cursor: pointer;
     }
 
     button {
@@ -66,26 +95,35 @@
     }
     button:active { background: #9a0007; transform: scale(0.98); }
 
-    /* Lista de Miembros */
+    /* Estilos de la lista de miembros */
     .miembro-card {
       background: #2a2a2a;
-      padding: 12px 15px;
+      padding: 14px 15px;
       border-radius: 8px;
       margin-bottom: 10px;
       text-align: left;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-left: 4px solid #d32f2f;
+      border-left: 5px solid #d32f2f;
     }
-    .miembro-info { font-size: 0.95rem; }
-    .miembro-info strong { display: block; font-size: 1.05rem; color: #fff; }
-    .estado { font-size: 0.8rem; padding: 3px 8px; border-radius: 4px; background: #2e7d32; color: #fff; }
+    .miembro-info strong { display: block; font-size: 1.05rem; color: #fff; margin-bottom: 3px; }
+    .miembro-info span { font-size: 0.85rem; color: #ff8a80; font-weight: 600; display: block; }
+    .miembro-info small { font-size: 0.78rem; color: #aaa; }
+    .monto-tag {
+      font-size: 1rem;
+      font-weight: bold;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #2e7d32;
+      color: #fff;
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
 
-  <!-- LOGO EMBEBIDO GYM VARGAS MACHINE -->
+  <!-- ENCABEZADO LOGO GYM VARGAS MACHINE -->
   <div class="logo-container">
     <div class="disco-peq"></div>
     <div class="disco"></div>
@@ -96,44 +134,71 @@
     <div class="disco-peq"></div>
   </div>
 
-  <!-- REGISTRO DESDE EL TELÉFONO -->
+  <!-- FORMULARIO DE REGISTRO EN EL MÓVIL -->
   <div class="card">
-    <h2>Registrar Nuevo Miembro</h2>
-    <input type="text" id="nombre" placeholder="Nombre completo">
-    <input type="tel" id="telefono" placeholder="Número de Teléfono">
+    <h2>Registrar Cliente</h2>
+    
+    <label for="nombre">Nombre y Apellido</label>
+    <input type="text" id="nombre" placeholder="Ej: Juan Pérez">
+
+    <label for="telefono">Número de Teléfono</label>
+    <input type="tel" id="telefono" placeholder="Ej: 04141234567">
+
+    <label for="plan">Seleccionar Plan Base</label>
     <select id="plan">
-      <option value="Mensualidad Pase Libre">Mensualidad Pase Libre</option>
-      <option value="Plan Personalizado">Plan Personalizado</option>
-      <option value="Pase Diario">Pase Diario</option>
+      <option value="Plan Semanal|10">Plan Semanal ($10)</option>
+      <option value="Plan Quincenal|15">Plan Quincenal ($15)</option>
+      <option value="Plan Mensual|25">Plan Mensual ($25)</option>
+      <option value="Pase Diario|2">Pase Diario ($2)</option>
     </select>
-    <button onclick="agregarMiembro()">+ GUARDAR EN EL SISTEMA</button>
+
+    <!-- CASILLA PARA ADICIONAL PERSONALIZADO -->
+    <div class="checkbox-container" onclick="document.getElementById('personalizado').click()">
+      <input type="checkbox" id="personalizado" onclick="event.stopPropagation()">
+      <label for="personalizado">Anexar Plan Personalizado (+$10)</label>
+    </div>
+
+    <button onclick="agregarMiembro()">+ GUARDAR REGISTRO</button>
   </div>
 
-  <!-- LISTADO DE MIEMBROS -->
+  <!-- LISTA DE CLIENTES INSCRITOS -->
   <div class="card">
-    <h2>Miembros Registrados</h2>
+    <h2>Clientes Registrados</h2>
+    <input type="text" id="buscar" placeholder="🔍 Buscar por nombre..." onkeyup="obtenerMiembros()">
     <div id="listaMiembros">
-      <p style="color: #888;">Cargando miembros...</p>
+      <p style="color: #888;">Cargando lista...</p>
     </div>
   </div>
 
   <script>
-    // Guardar información en localStorage (accesible desde el navegador del celular)
     function agregarMiembro() {
-      const nombre = document.getElementById('nombre').value;
-      const telefono = document.getElementById('telefono').value;
-      const plan = document.getElementById('plan').value;
+      const nombre = document.getElementById('nombre').value.trim();
+      const telefono = document.getElementById('telefono').value.trim();
+      const planSelect = document.getElementById('plan').value.split('|');
+      const esPersonalizado = document.getElementById('personalizado').checked;
+      
+      let nombrePlan = planSelect[0];
+      let precioBase = parseInt(planSelect[1]);
+      let precioTotal = precioBase;
 
       if (!nombre) {
-        alert("Por favor ingresa el nombre del miembro");
+        alert("Por favor ingresa el nombre del cliente.");
         return;
       }
 
+      // Si se seleccionó la opción personalizada, se suma los $10 y se detalla en la descripción
+      if (esPersonalizado) {
+        precioTotal += 10;
+        nombrePlan += " + Personalizado";
+      }
+
       const nuevoMiembro = {
+        id: Date.now(),
         nombre: nombre,
-        telefono: telefono,
-        plan: plan,
-        fecha: new Date().toLocaleDateString()
+        telefono: telefono || 'N/A',
+        plan: nombrePlan,
+        precio: `$${precioTotal}`,
+        fecha: new Date().toLocaleDateString('es-ES')
       };
 
       let miembros = JSON.parse(localStorage.getItem('gym_vargas_miembros')) || [];
@@ -141,37 +206,43 @@
 
       localStorage.setItem('gym_vargas_miembros', JSON.stringify(miembros));
 
-      // Limpiar campos
+      // Limpiar formulario
       document.getElementById('nombre').value = '';
       document.getElementById('telefono').value = '';
+      document.getElementById('personalizado').checked = false;
 
       obtenerMiembros();
     }
 
     function obtenerMiembros() {
       let miembros = JSON.parse(localStorage.getItem('gym_vargas_miembros')) || [];
+      const filtro = document.getElementById('buscar').value.toLowerCase();
       const contenedor = document.getElementById('listaMiembros');
 
-      if (miembros.length === 0) {
-        contenedor.innerHTML = '<p style="color: #888;">No hay miembros registrados aún.</p>';
+      // Filtrar por la búsqueda realizada en el teléfono
+      const miembrosFiltrados = miembros.filter(m => m.nombre.toLowerCase().includes(filtro));
+
+      if (miembrosFiltrados.length === 0) {
+        contenedor.innerHTML = '<p style="color: #888; padding: 10px;">No se encontraron registros.</p>';
         return;
       }
 
       contenedor.innerHTML = '';
-      miembros.forEach((m) => {
+      miembrosFiltrados.forEach((m) => {
         contenedor.innerHTML += `
           <div class="miembro-card">
             <div class="miembro-info">
               <strong>${m.nombre}</strong>
-              <small style="color: #aaa;">${m.plan} • ${m.fecha}</small>
+              <span>${m.plan}</span>
+              <small>Tlf: ${m.telefono} • Fecha: ${m.fecha}</small>
             </div>
-            <span class="estado">Activo</span>
+            <div class="monto-tag">${m.precio}</div>
           </div>
         `;
       });
     }
 
-    // Cargar miembros al iniciar la página
+    // Cargar miembros al abrir en el navegador del teléfono
     obtenerMiembros();
   </script>
 </body>
