@@ -31,11 +31,13 @@
 
     button { width: 100%; padding: 15px; background: #d32f2f; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.2s; }
     button:active { background: #9a0007; transform: scale(0.98); }
+    
+    .btn-borrar { background: #444; margin-top: 10px; font-size: 0.85rem; padding: 10px; }
 
     /* Estilos de miembros y alertas de vencimiento */
     .miembro-card { background: #2a2a2a; padding: 14px 15px; border-radius: 8px; margin-bottom: 10px; text-align: left; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #2e7d32; }
-    .miembro-card.alerta-proximo { border-left-color: #f57c00; background: #332619; } /* Alerta cuando faltan <= 2 días */
-    .miembro-card.alerta-vencido { border-left-color: #d32f2f; background: #331919; } /* Vencido */
+    .miembro-card.alerta-proximo { border-left-color: #f57c00; background: #332619; }
+    .miembro-card.alerta-vencido { border-left-color: #d32f2f; background: #331919; }
 
     .miembro-info strong { display: block; font-size: 1.05rem; color: #fff; margin-bottom: 3px; }
     .miembro-info span { font-size: 0.85rem; color: #ff8a80; font-weight: 600; display: block; }
@@ -46,6 +48,7 @@
     .badge-danger { background: #d32f2f; color: #fff; }
 
     .monto-tag { font-size: 1rem; font-weight: bold; padding: 6px 12px; border-radius: 6px; background: #2e7d32; color: #fff; white-space: nowrap; }
+    .btn-eliminar-item { background: transparent; color: #ff5252; border: none; width: auto; padding: 5px 8px; margin-left: 8px; font-size: 1rem; }
   </style>
 </head>
 <body>
@@ -84,41 +87,43 @@
       <label for="personalizado">Anexar Plan Personalizado (+$10)</label>
     </div>
 
-    <button onclick="agregarMiembro()">+ GUARDAR REGISTRO</button>
+    <button id="btnGuardar" onclick="agregarMiembro()">+ GUARDAR REGISTRO</button>
   </div>
 
-  <!-- LISTA DE CLIENTES CON ALERTAS DE VENCIMIENTO -->
+  <!-- LISTA DE CLIENTES -->
   <div class="card">
     <h2>Clientes Registrados</h2>
     <input type="text" id="buscar" placeholder="🔍 Buscar por nombre..." onkeyup="obtenerMiembros()">
     <div id="listaMiembros">
       <p style="color: #888;">Cargando lista...</p>
     </div>
+    <button class="btn-borrar" onclick="limpiarTodo()">🗑️ Borrar toda la lista (Reiniciar)</button>
   </div>
 
   <script>
     function agregarMiembro() {
-      const nombre = document.getElementById('nombre').value.trim();
-      const telefono = document.getElementById('telefono').value.trim();
+      const nombreInput = document.getElementById('nombre');
+      const telefonoInput = document.getElementById('telefono');
+      const nombre = nombreInput.value.trim();
+      const telefono = telefonoInput.value.trim();
       const planSelect = document.getElementById('plan').value.split('|');
       const esPersonalizado = document.getElementById('personalizado').checked;
       
-      let nombrePlan = planSelect[0];
-      let precioBase = parseInt(planSelect[1]);
-      let diasDuracion = parseInt(planSelect[2]);
-      let precioTotal = precioBase;
-
       if (!nombre) {
         alert("Por favor ingresa el nombre del cliente.");
         return;
       }
+
+      let nombrePlan = planSelect[0];
+      let precioBase = parseInt(planSelect[1]);
+      let diasDuracion = parseInt(planSelect[2]);
+      let precioTotal = precioBase;
 
       if (esPersonalizado) {
         precioTotal += 10;
         nombrePlan += " + Personalizado";
       }
 
-      // Calcular fecha de vencimiento según los días del plan
       const fechaInicio = new Date();
       const fechaVencimiento = new Date();
       fechaVencimiento.setDate(fechaInicio.getDate() + diasDuracion);
@@ -134,12 +139,17 @@
       };
 
       let miembros = JSON.parse(localStorage.getItem('gym_vargas_miembros')) || [];
-      miembros.unshift(nuevoMiembro);
+      
+      // Evitar guardar duplicado si ya existe un id o nombre idéntico registrado hace menos de 5 segundos
+      const esDuplicado = miembros.some(m => m.nombre.toLowerCase() === nombre.toLowerCase() && (Date.now() - m.id) < 5000);
+      if (esDuplicado) return;
 
+      miembros.unshift(nuevoMiembro);
       localStorage.setItem('gym_vargas_miembros', JSON.stringify(miembros));
 
-      document.getElementById('nombre').value = '';
-      document.getElementById('telefono').value = '';
+      // Limpiar campos
+      nombreInput.value = '';
+      telefonoInput.value = '';
       document.getElementById('personalizado').checked = false;
 
       obtenerMiembros();
@@ -158,11 +168,10 @@
       }
 
       const hoy = new Date();
-      contenedor.innerHTML = '';
+      contenedor.innerHTML = ''; // Limpiar el contenedor antes de renderizar para evitar duplicación visual
 
       miembrosFiltrados.forEach((m) => {
         const fechaVenc = new Date(m.fechaVencimiento);
-        // Calcular días restantes
         const diferenciaMilisegundos = fechaVenc - hoy;
         const diasRestantes = Math.ceil(diferenciaMilisegundos / (1000 * 60 * 60 * 24));
 
@@ -187,13 +196,31 @@
               <small>Tlf: ${m.telefono} • Vence: ${fechaFormateada}</small>
               ${htmlBadge}
             </div>
-            <div class="monto-tag">${m.precio}</div>
+            <div style="display:flex; align-items:center;">
+              <div class="monto-tag">${m.precio}</div>
+              <button class="btn-eliminar-item" onclick="eliminarCliente(${m.id})">❌</button>
+            </div>
           </div>
         `;
       });
     }
 
-    obtenerMiembros();
+    function eliminarCliente(id) {
+      let miembros = JSON.parse(localStorage.getItem('gym_vargas_miembros')) || [];
+      miembros = miembros.filter(m => m.id !== id);
+      localStorage.setItem('gym_vargas_miembros', JSON.stringify(miembros));
+      obtenerMiembros();
+    }
+
+    function limpiarTodo() {
+      if (confirm("¿Estás seguro de que deseas borrar toda la lista de clientes registrados?")) {
+        localStorage.removeItem('gym_vargas_miembros');
+        obtenerMiembros();
+      }
+    }
+
+    // Ejecutar solo al cargar
+    document.addEventListener("DOMContentLoaded", obtenerMiembros);
   </script>
 </body>
 </html>
