@@ -5,6 +5,204 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gym Vargas Machine - Control de Miembros</title>
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #121212; color: #ffffff; padding: 15px; text-align: center; }
+    
+    /* Logo de Mancuerna / Barra */
+    .logo-container { display: flex; align-items: center; justify-content: center; margin: 20px 0; gap: 5px; }
+    .disco { width: 12px; height: 45px; background: #d32f2f; border-radius: 3px; border: 1px solid #9a0007; }
+    .disco-peq { width: 8px; height: 35px; background: #b71c1c; border-radius: 2px; }
+    .agarre { width: 15px; height: 8px; background: #888; }
+    .logo-texto { font-size: 1.1rem; font-weight: bold; color: #ffffff; letter-spacing: 1px; text-transform: uppercase; padding: 0 6px; }
+    .logo-texto span { color: #d32f2f; }
+
+    /* Tarjetas */
+    .card { background: #1e1e1e; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 1px solid #333; }
+    .card h2 { margin-bottom: 15px; font-size: 1.1rem; color: #e0e0e0; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    label { display: block; text-align: left; font-size: 0.85rem; color: #aaa; margin-bottom: 5px; font-weight: 600; }
+
+    input[type="text"], input[type="tel"], select { width: 100%; padding: 14px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #444; background: #2a2a2a; color: #fff; font-size: 1rem; outline: none; }
+    input:focus, select:focus { border-color: #d32f2f; }
+
+    .checkbox-container { display: flex; align-items: center; background: #2a2a2a; padding: 12px 15px; border-radius: 8px; border: 1px solid #d32f2f; margin-bottom: 18px; cursor: pointer; }
+    .checkbox-container input[type="checkbox"] { width: 22px; height: 22px; accent-color: #d32f2f; margin-right: 12px; cursor: pointer; }
+    .checkbox-container label { margin-bottom: 0; color: #fff; font-size: 0.95rem; cursor: pointer; }
+
+    button { width: 100%; padding: 15px; background: #d32f2f; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.2s; }
+    button:active { background: #9a0007; transform: scale(0.98); }
+
+    /* Estilos de miembros y alertas de vencimiento */
+    .miembro-card { background: #2a2a2a; padding: 14px 15px; border-radius: 8px; margin-bottom: 10px; text-align: left; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #2e7d32; }
+    .miembro-card.alerta-proximo { border-left-color: #f57c00; background: #332619; } /* Alerta cuando faltan <= 2 días */
+    .miembro-card.alerta-vencido { border-left-color: #d32f2f; background: #331919; } /* Vencido */
+
+    .miembro-info strong { display: block; font-size: 1.05rem; color: #fff; margin-bottom: 3px; }
+    .miembro-info span { font-size: 0.85rem; color: #ff8a80; font-weight: 600; display: block; }
+    .miembro-info small { font-size: 0.78rem; color: #aaa; }
+    
+    .badge-alerta { display: inline-block; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; margin-top: 4px; font-weight: bold; }
+    .badge-warning { background: #f57c00; color: #fff; }
+    .badge-danger { background: #d32f2f; color: #fff; }
+
+    .monto-tag { font-size: 1rem; font-weight: bold; padding: 6px 12px; border-radius: 6px; background: #2e7d32; color: #fff; white-space: nowrap; }
+  </style>
+</head>
+<body>
+
+  <!-- ENCABEZADO LOGO GYM VARGAS MACHINE -->
+  <div class="logo-container">
+    <div class="disco-peq"></div>
+    <div class="disco"></div>
+    <div class="agarre"></div>
+    <div class="logo-texto">GYM <span>VARGAS</span> MACHINE</div>
+    <div class="agarre"></div>
+    <div class="disco"></div>
+    <div class="disco-peq"></div>
+  </div>
+
+  <!-- FORMULARIO DE REGISTRO -->
+  <div class="card">
+    <h2>Registrar Cliente</h2>
+    
+    <label for="nombre">Nombre y Apellido</label>
+    <input type="text" id="nombre" placeholder="Ej: Juan Pérez">
+
+    <label for="telefono">Número de Teléfono</label>
+    <input type="tel" id="telefono" placeholder="Ej: 04141234567">
+
+    <label for="plan">Seleccionar Plan Base</label>
+    <select id="plan">
+      <option value="Plan Semanal|10|7">Plan Semanal ($10 - 7 Días)</option>
+      <option value="Plan Quincenal|15|15">Plan Quincenal ($15 - 15 Días)</option>
+      <option value="Plan Mensual|25|30">Plan Mensual ($25 - 30 Días)</option>
+      <option value="Pase Diario|2|1">Pase Diario ($2 - 1 Día)</option>
+    </select>
+
+    <div class="checkbox-container" onclick="document.getElementById('personalizado').click()">
+      <input type="checkbox" id="personalizado" onclick="event.stopPropagation()">
+      <label for="personalizado">Anexar Plan Personalizado (+$10)</label>
+    </div>
+
+    <button onclick="agregarMiembro()">+ GUARDAR REGISTRO</button>
+  </div>
+
+  <!-- LISTA DE CLIENTES CON ALERTAS DE VENCIMIENTO -->
+  <div class="card">
+    <h2>Clientes Registrados</h2>
+    <input type="text" id="buscar" placeholder="🔍 Buscar por nombre..." onkeyup="obtenerMiembros()">
+    <div id="listaMiembros">
+      <p style="color: #888;">Cargando lista...</p>
+    </div>
+  </div>
+
+  <script>
+    function agregarMiembro() {
+      const nombre = document.getElementById('nombre').value.trim();
+      const telefono = document.getElementById('telefono').value.trim();
+      const planSelect = document.getElementById('plan').value.split('|');
+      const esPersonalizado = document.getElementById('personalizado').checked;
+      
+      let nombrePlan = planSelect[0];
+      let precioBase = parseInt(planSelect[1]);
+      let diasDuracion = parseInt(planSelect[2]);
+      let precioTotal = precioBase;
+
+      if (!nombre) {
+        alert("Por favor ingresa el nombre del cliente.");
+        return;
+      }
+
+      if (esPersonalizado) {
+        precioTotal += 10;
+        nombrePlan += " + Personalizado";
+      }
+
+      // Calcular fecha de vencimiento según los días del plan
+      const fechaInicio = new Date();
+      const fechaVencimiento = new Date();
+      fechaVencimiento.setDate(fechaInicio.getDate() + diasDuracion);
+
+      const nuevoMiembro = {
+        id: Date.now(),
+        nombre: nombre,
+        telefono: telefono || 'N/A',
+        plan: nombrePlan,
+        precio: `$${precioTotal}`,
+        fechaRegistro: fechaInicio.toISOString(),
+        fechaVencimiento: fechaVencimiento.toISOString()
+      };
+
+      let miembros = JSON.parse(localStorage.getItem('gym_vargas_miembros')) || [];
+      miembros.unshift(nuevoMiembro);
+
+      localStorage.setItem('gym_vargas_miembros', JSON.stringify(miembros));
+
+      document.getElementById('nombre').value = '';
+      document.getElementById('telefono').value = '';
+      document.getElementById('personalizado').checked = false;
+
+      obtenerMiembros();
+    }
+
+    function obtenerMiembros() {
+      let miembros = JSON.parse(localStorage.getItem('gym_vargas_miembros')) || [];
+      const filtro = document.getElementById('buscar').value.toLowerCase();
+      const contenedor = document.getElementById('listaMiembros');
+
+      const miembrosFiltrados = miembros.filter(m => m.nombre.toLowerCase().includes(filtro));
+
+      if (miembrosFiltrados.length === 0) {
+        contenedor.innerHTML = '<p style="color: #888; padding: 10px;">No se encontraron registros.</p>';
+        return;
+      }
+
+      const hoy = new Date();
+      contenedor.innerHTML = '';
+
+      miembrosFiltrados.forEach((m) => {
+        const fechaVenc = new Date(m.fechaVencimiento);
+        // Calcular días restantes
+        const diferenciaMilisegundos = fechaVenc - hoy;
+        const diasRestantes = Math.ceil(diferenciaMilisegundos / (1000 * 60 * 60 * 24));
+
+        let claseAlerta = '';
+        let htmlBadge = '';
+
+        if (diasRestantes < 0) {
+          claseAlerta = 'alerta-vencido';
+          htmlBadge = '<span class="badge-alerta badge-danger">⚠️ MEMBRESÍA VENCIDA</span>';
+        } else if (diasRestantes <= 2) {
+          claseAlerta = 'alerta-proximo';
+          htmlBadge = `<span class="badge-alerta badge-warning">⚡ VENCE EN ${diasRestantes} DÍA(S)</span>`;
+        }
+
+        const fechaFormateada = fechaVenc.toLocaleDateString('es-ES');
+
+        contenedor.innerHTML += `
+          <div class="miembro-card ${claseAlerta}">
+            <div class="miembro-info">
+              <strong>${m.nombre}</strong>
+              <span>${m.plan}</span>
+              <small>Tlf: ${m.telefono} • Vence: ${fechaFormateada}</small>
+              ${htmlBadge}
+            </div>
+            <div class="monto-tag">${m.precio}</div>
+          </div>
+        `;
+      });
+    }
+
+    obtenerMiembros();
+  </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gym Vargas Machine - Control de Miembros</title>
+  <style>
     /* Estilos generales optimizados para celular */
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body { background-color: #121212; color: #ffffff; padding: 15px; text-align: center; }
