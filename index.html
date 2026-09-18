@@ -34,7 +34,7 @@
     
     .btn-borrar { background: #444; margin-top: 10px; font-size: 0.85rem; padding: 10px; }
 
-    /* Estilos de miembros y alertas de vencimiento */
+    /* Estilos de tarjetas de miembros */
     .miembro-card { background: #2a2a2a; padding: 14px 15px; border-radius: 8px; margin-bottom: 10px; text-align: left; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #2e7d32; }
     .miembro-card.alerta-proximo { border-left-color: #f57c00; background: #332619; }
     .miembro-card.alerta-vencido { border-left-color: #d32f2f; background: #331919; }
@@ -47,13 +47,18 @@
     .badge-warning { background: #f57c00; color: #fff; }
     .badge-danger { background: #d32f2f; color: #fff; }
 
-    .monto-tag { font-size: 1rem; font-weight: bold; padding: 6px 12px; border-radius: 6px; background: #2e7d32; color: #fff; white-space: nowrap; }
-    .btn-eliminar-item { background: transparent; color: #ff5252; border: none; width: auto; padding: 5px 8px; margin-left: 8px; font-size: 1rem; }
+    .monto-tag { font-size: 0.95rem; font-weight: bold; padding: 5px 10px; border-radius: 6px; background: #2e7d32; color: #fff; white-space: nowrap; }
+    
+    /* Botones de Acción (WhatsApp y Eliminar) */
+    .acciones-container { display: flex; align-items: center; gap: 6px; }
+    .btn-ws { background: #25d366; color: white; border: none; padding: 8px 10px; border-radius: 6px; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; text-decoration: none; }
+    .btn-ws:active { background: #128c7e; }
+    .btn-eliminar-item { background: transparent; color: #ff5252; border: none; width: auto; padding: 5px 6px; font-size: 1rem; cursor: pointer; }
   </style>
 </head>
 <body>
 
-  <!-- ENCABEZADO LOGO GYM VARGAS MACHINE -->
+  <!-- LOGO EMBEBIDO -->
   <div class="logo-container">
     <div class="disco-peq"></div>
     <div class="disco"></div>
@@ -64,15 +69,15 @@
     <div class="disco-peq"></div>
   </div>
 
-  <!-- FORMULARIO DE REGISTRO -->
+  <!-- REGISTRO -->
   <div class="card">
     <h2>Registrar Cliente</h2>
     
     <label for="nombre">Nombre y Apellido</label>
     <input type="text" id="nombre" placeholder="Ej: Juan Pérez">
 
-    <label for="telefono">Número de Teléfono</label>
-    <input type="tel" id="telefono" placeholder="Ej: 04141234567">
+    <label for="telefono">Número de Teléfono (con código de área)</label>
+    <input type="tel" id="telefono" placeholder="Ej: 04141234567 o +584141234567">
 
     <label for="plan">Seleccionar Plan Base</label>
     <select id="plan">
@@ -87,7 +92,7 @@
       <label for="personalizado">Anexar Plan Personalizado (+$10)</label>
     </div>
 
-    <button id="btnGuardar" onclick="agregarMiembro()">+ GUARDAR REGISTRO</button>
+    <button onclick="agregarMiembro()">+ GUARDAR REGISTRO</button>
   </div>
 
   <!-- LISTA DE CLIENTES -->
@@ -105,7 +110,7 @@
       const nombreInput = document.getElementById('nombre');
       const telefonoInput = document.getElementById('telefono');
       const nombre = nombreInput.value.trim();
-      const telefono = telefonoInput.value.trim();
+      let telefono = telefonoInput.value.trim();
       const planSelect = document.getElementById('plan').value.split('|');
       const esPersonalizado = document.getElementById('personalizado').checked;
       
@@ -140,14 +145,12 @@
 
       let miembros = JSON.parse(localStorage.getItem('gym_vargas_miembros')) || [];
       
-      // Evitar guardar duplicado si ya existe un id o nombre idéntico registrado hace menos de 5 segundos
       const esDuplicado = miembros.some(m => m.nombre.toLowerCase() === nombre.toLowerCase() && (Date.now() - m.id) < 5000);
       if (esDuplicado) return;
 
       miembros.unshift(nuevoMiembro);
       localStorage.setItem('gym_vargas_miembros', JSON.stringify(miembros));
 
-      // Limpiar campos
       nombreInput.value = '';
       telefonoInput.value = '';
       document.getElementById('personalizado').checked = false;
@@ -168,7 +171,7 @@
       }
 
       const hoy = new Date();
-      contenedor.innerHTML = ''; // Limpiar el contenedor antes de renderizar para evitar duplicación visual
+      contenedor.innerHTML = '';
 
       miembrosFiltrados.forEach((m) => {
         const fechaVenc = new Date(m.fechaVencimiento);
@@ -187,6 +190,21 @@
         }
 
         const fechaFormateada = fechaVenc.toLocaleDateString('es-ES');
+        
+        // Preparar número de teléfono para WhatsApp (formato internacional)
+        let tlfLimpio = m.telefono.replace(/\D/g, '');
+        if (tlfLimpio.startsWith('0')) {
+          tlfLimpio = '58' + tlfLimpio.substring(1); // Ajusta según el código de país (ej. 58 para Venezuela)
+        }
+
+        // Texto codificado para URL
+        const textoWS = encodeURIComponent(`Hola ${m.nombre}! Te saludamos de Gym Vargas Machine 💪🏼. Te recordamos que tu membresía (${m.plan}) está próxima a vencer el ${fechaFormateada}. ¡Te esperamos para seguir entrenando!`);
+        const urlWS = `https://wa.me/${tlfLimpio}?text=${textoWS}`;
+
+        // Mostrar botón de WhatsApp solo si hay teléfono registrado
+        const btnWhatsApp = (m.telefono !== 'N/A' && tlfLimpio.length >= 10) 
+          ? `<a href="${urlWS}" target="_blank" class="btn-ws" title="Enviar WhatsApp">💬</a>` 
+          : '';
 
         contenedor.innerHTML += `
           <div class="miembro-card ${claseAlerta}">
@@ -196,8 +214,9 @@
               <small>Tlf: ${m.telefono} • Vence: ${fechaFormateada}</small>
               ${htmlBadge}
             </div>
-            <div style="display:flex; align-items:center;">
+            <div class="acciones-container">
               <div class="monto-tag">${m.precio}</div>
+              ${btnWhatsApp}
               <button class="btn-eliminar-item" onclick="eliminarCliente(${m.id})">❌</button>
             </div>
           </div>
@@ -219,7 +238,6 @@
       }
     }
 
-    // Ejecutar solo al cargar
     document.addEventListener("DOMContentLoaded", obtenerMiembros);
   </script>
 </body>
