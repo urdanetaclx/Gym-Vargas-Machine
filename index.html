@@ -22,7 +22,18 @@
     
     label { display: block; text-align: left; font-size: 0.85rem; color: #aaa; margin-bottom: 5px; font-weight: 600; }
 
-    input[type="text"], input[type="tel"], select { width: 100%; padding: 14px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #444; background: #2a2a2a; color: #fff; font-size: 1rem; outline: none; }
+    input[type="text"], input[type="tel"], input[type="date"], select { 
+      width: 100%; 
+      padding: 14px; 
+      margin-bottom: 15px; 
+      border-radius: 8px; 
+      border: 1px solid #444; 
+      background: #2a2a2a; 
+      color: #fff; 
+      font-size: 1rem; 
+      outline: none; 
+      color-scheme: dark; /* Adapta el icono del calendario al tema oscuro */
+    }
     input:focus, select:focus { border-color: #d32f2f; }
 
     .checkbox-container { display: flex; align-items: center; background: #2a2a2a; padding: 12px 15px; border-radius: 8px; border: 1px solid #d32f2f; margin-bottom: 18px; cursor: pointer; }
@@ -77,7 +88,10 @@
     <input type="text" id="nombre" placeholder="Ej: Juan Pérez">
 
     <label for="telefono">Número de Teléfono (con código de área)</label>
-    <input type="tel" id="telefono" placeholder="Ej: 04141234567 o +584141234567">
+    <input type="tel" id="telefono" placeholder="Ej: 04141234567">
+
+    <label for="fechaInscripcion">📅 Fecha de Inscripción</label>
+    <input type="date" id="fechaInscripcion">
 
     <label for="plan">Seleccionar Plan Base</label>
     <select id="plan">
@@ -106,16 +120,31 @@
   </div>
 
   <script>
+    // Asignar fecha de hoy automáticamente al campo del calendario
+    document.addEventListener("DOMContentLoaded", () => {
+      const hoy = new Date().toISOString().split('T')[0];
+      document.getElementById('fechaInscripcion').value = hoy;
+      obtenerMiembros();
+    });
+
     function agregarMiembro() {
       const nombreInput = document.getElementById('nombre');
       const telefonoInput = document.getElementById('telefono');
+      const fechaInput = document.getElementById('fechaInscripcion');
+
       const nombre = nombreInput.value.trim();
       let telefono = telefonoInput.value.trim();
+      const fechaSeleccionada = fechaInput.value;
       const planSelect = document.getElementById('plan').value.split('|');
       const esPersonalizado = document.getElementById('personalizado').checked;
       
       if (!nombre) {
         alert("Por favor ingresa el nombre del cliente.");
+        return;
+      }
+
+      if (!fechaSeleccionada) {
+        alert("Por favor selecciona una fecha de inscripción.");
         return;
       }
 
@@ -129,8 +158,11 @@
         nombrePlan += " + Personalizado";
       }
 
-      const fechaInicio = new Date();
-      const fechaVencimiento = new Date();
+      // Convertir la fecha seleccionada en el calendario a formato Date (ajustando zona horaria local)
+      const partesFecha = fechaSeleccionada.split('-');
+      const fechaInicio = new Date(partesFecha[0], partesFecha[1] - 1, partesFecha[2]);
+
+      const fechaVencimiento = new Date(fechaInicio);
       fechaVencimiento.setDate(fechaInicio.getDate() + diasDuracion);
 
       const nuevoMiembro = {
@@ -151,8 +183,10 @@
       miembros.unshift(nuevoMiembro);
       localStorage.setItem('gym_vargas_miembros', JSON.stringify(miembros));
 
+      // Reiniciar formulario
       nombreInput.value = '';
       telefonoInput.value = '';
+      fechaInput.value = new Date().toISOString().split('T')[0]; // Regresa a la fecha actual
       document.getElementById('personalizado').checked = false;
 
       obtenerMiembros();
@@ -171,12 +205,20 @@
       }
 
       const hoy = new Date();
+      // Normalizar la hora actual a medianoche para comparaciones exactas de días
+      hoy.setHours(0, 0, 0, 0);
       contenedor.innerHTML = '';
 
       miembrosFiltrados.forEach((m) => {
+        const fechaInsc = new Date(m.fechaRegistro);
         const fechaVenc = new Date(m.fechaVencimiento);
-        const diferenciaMilisegundos = fechaVenc - hoy;
-        const diasRestantes = Math.ceil(diferenciaMilisegundos / (1000 * 60 * 60 * 24));
+        
+        // Normalizar horas a medianoche para evitar desfases
+        const fechaVencNormal = new Date(fechaVenc);
+        fechaVencNormal.setHours(0, 0, 0, 0);
+
+        const diferenciaMilisegundos = fechaVencNormal - hoy;
+        const diasRestantes = Math.round(diferenciaMilisegundos / (1000 * 60 * 60 * 24));
 
         let claseAlerta = '';
         let htmlBadge = '';
@@ -189,19 +231,18 @@
           htmlBadge = `<span class="badge-alerta badge-warning">⚡ VENCE EN ${diasRestantes} DÍA(S)</span>`;
         }
 
-        const fechaFormateada = fechaVenc.toLocaleDateString('es-ES');
+        const fechaInscFormateada = fechaInsc.toLocaleDateString('es-ES');
+        const fechaVencFormateada = fechaVenc.toLocaleDateString('es-ES');
         
-        // Preparar número de teléfono para WhatsApp (formato internacional)
+        // Preparar WhatsApp
         let tlfLimpio = m.telefono.replace(/\D/g, '');
         if (tlfLimpio.startsWith('0')) {
-          tlfLimpio = '58' + tlfLimpio.substring(1); // Ajusta según el código de país (ej. 58 para Venezuela)
+          tlfLimpio = '58' + tlfLimpio.substring(1);
         }
 
-        // Texto codificado para URL
-        const textoWS = encodeURIComponent(`Hola ${m.nombre}! Te saludamos de Gym Vargas Machine 💪🏼. Te recordamos que tu membresía (${m.plan}) está próxima a vencer el ${fechaFormateada}. ¡Te esperamos para seguir entrenando!`);
+        const textoWS = encodeURIComponent(`Hola ${m.nombre}! Te saludamos de Gym Vargas Machine 💪🏼. Te recordamos que tu membresía (${m.plan}) está próxima a vencer el ${fechaVencFormateada}. ¡Te esperamos para seguir entrenando!`);
         const urlWS = `https://wa.me/${tlfLimpio}?text=${textoWS}`;
 
-        // Mostrar botón de WhatsApp solo si hay teléfono registrado
         const btnWhatsApp = (m.telefono !== 'N/A' && tlfLimpio.length >= 10) 
           ? `<a href="${urlWS}" target="_blank" class="btn-ws" title="Enviar WhatsApp">💬</a>` 
           : '';
@@ -211,7 +252,8 @@
             <div class="miembro-info">
               <strong>${m.nombre}</strong>
               <span>${m.plan}</span>
-              <small>Tlf: ${m.telefono} • Vence: ${fechaFormateada}</small>
+              <small>Inscrito: ${fechaInscFormateada} • Vence: ${fechaVencFormateada}</small>
+              <small>Tlf: ${m.telefono}</small>
               ${htmlBadge}
             </div>
             <div class="acciones-container">
@@ -237,8 +279,6 @@
         obtenerMiembros();
       }
     }
-
-    document.addEventListener("DOMContentLoaded", obtenerMiembros);
   </script>
 </body>
 </html>
